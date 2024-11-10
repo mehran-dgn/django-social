@@ -1,6 +1,6 @@
 from django.shortcuts import render , redirect , get_object_or_404
 from django.views import View 
-from .forms import UserRegistrationForm , UserLoginForm
+from .forms import UserRegistrationForm , UserLoginForm, EditUserForm
 from django.contrib.auth.models import User 
 from django.contrib import messages 
 from django.contrib.auth import authenticate , login , logout
@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from home.models import Post
 from django.contrib.auth import views as auth_views
 from django.urls import reverse_lazy
-from .models import Relation
+from .models import Relation,Profile
 # Create your views here.
 
 class UserRegisterView(View):
@@ -122,3 +122,19 @@ class UserUnfollowView(LoginRequiredMixin , View):
         else:
             messages.errot(request,'you are not following this user','danger')
         return redirect('account:user_profile',user.id)    
+    
+class EditUserView(LoginRequiredMixin, View):
+	form_class = EditUserForm
+
+	def get(self, request):
+		form = self.form_class(instance=request.user.profile, initial={'email':request.user.email})
+		return render(request, 'account/edit_profile.html', {'form':form})
+
+	def post(self, request):
+		form = self.form_class(request.POST, instance=request.user.profile)
+		if form.is_valid():
+			form.save()
+			request.user.email = form.cleaned_data['email']
+			request.user.save()
+			messages.success(request, 'profile edited successfully', 'success')
+		return redirect('account:user_profile', request.user.id)
